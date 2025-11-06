@@ -74,3 +74,4 @@ end)
 
 
 print("REAPER HUB ACTIVE! Silent aim + visuals.")
+AutoShow = true,
