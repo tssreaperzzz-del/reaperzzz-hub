@@ -1,0 +1,75 @@
+-- REAPER HUB v1 - Silent Aim + FOV + Target Box
+print("REAPER HUB LOADED! Aim near players.")
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+-- FOV Circle
+local fov = Drawing.new("Circle")
+fov.Radius = 100
+fov.Color = Color3.fromRGB(255, 50, 50)
+fov.Thickness = 2
+fov.Filled = false
+fov.Visible = true
+
+-- Target Box
+local box = Drawing.new("Square")
+box.Size = Vector2.new(20, 20)
+box.Color = Color3.fromRGB(255, 50, 50)
+box.Thickness = 2
+box.Filled = false
+box.Visible = false
+
+-- Get Closest Player
+local function GetClosest()
+    local closest, dist = nil, 100
+    for _, p in Players:GetPlayers() do
+        if p == LocalPlayer then continue end
+        local char = p.Character
+        if char and char:FindFirstChild("Head") then
+            local head = char.Head
+            local pos, onscreen = Camera:WorldToViewportPoint(head.Position)
+            if onscreen then
+                local d = (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
+                if d < dist then
+                    closest = head
+                    dist = d
+                end
+            end
+        end
+    end
+    return closest
+end
+
+-- Silent Aim Hook
+local old
+old = hookmetamethod(game, "__namecall", function(self, ...)
+    local method = getnamecallmethod()
+    if method == "Raycast" and self == workspace then
+        local target = GetClosest()
+        if target then
+            local args = {...}
+            args[3] = (target.Position - args[2]).Unit * 1000
+            return old(self, unpack(args))
+        end
+    end
+    return old(self, ...)
+end)
+
+-- Update Visuals
+RunService.RenderStepped:Connect(function()
+    fov.Position = Vector2.new(Mouse.X, Mouse.Y)
+    local target = GetClosest()
+    if target then
+        local pos = Camera:WorldToViewportPoint(target.Position)
+        box.Visible = true
+        box.Position = Vector2.new(pos.X - 10, pos.Y - 10)
+    else
+        box.Visible = false
+    end
+end)
+
+print("REAPER HUB ACTIVE! Silent aim + visuals.")
